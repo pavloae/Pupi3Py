@@ -25,7 +25,7 @@ SECRET_KEY = 'oaw=m*4egr7znju62$cs_23-ksn^*kcx5w_=su69&h^(36o$=+'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['pupi3.com.ar', 'localhost']
 
 
 # Application definition

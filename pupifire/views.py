@@ -3,10 +3,9 @@ import os
 import pyrebase
 from django.http import HttpResponse
 
-import firebase_admin
-from firebase_admin import credentials
-
 # Create your views here.
+from django.shortcuts import render
+
 from Pupi3Py import settings
 
 service_account_key = os.path.join(
@@ -26,8 +25,8 @@ config = {
 
 firebase = pyrebase.initialize_app(config)
 
-cred = credentials.Certificate(service_account_key)
-firebase_admin.initialize_app(cred)
+# cred = credentials.Certificate(service_account_key)
+# firebase_admin.initialize_app(cred)
 
 
 def index(request):
@@ -35,7 +34,15 @@ def index(request):
 
 
 def login(request):
-    return HttpResponse('Login')
+    return render(request, 'login.html')
+
+
+def tos(request):
+    return HttpResponse("Términos del servicio...")
+
+
+def privacy_policy(request):
+    return HttpResponse("Política de privacidad...")
 
 
 def users(request):
