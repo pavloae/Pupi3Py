@@ -1,40 +1,41 @@
-import os
-
 import pyrebase
+from django.contrib import auth
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 
 # Create your views here.
-from django.shortcuts import render
-
-from Pupi3Py import settings
-
-service_account_key = os.path.join(
-    os.path.dirname(settings.BASE_DIR), 'aula31-e5dd1-firebase-adminsdk-eyng4-42181e09b6.json'
-)
+from django.shortcuts import render, redirect
+from django.urls import reverse
 
 config = {
     'apiKey': "AIzaSyDmk-4phXqH4BjGgEkGc2rRiZf2ofguWi8",
     'authDomain': "aula31-e5dd1.firebaseapp.com",
     'databaseURL': "https://aula31-e5dd1.firebaseio.com",
-    'projectId': "aula31-e5dd1",
     'storageBucket': "aula31-e5dd1.appspot.com",
-    'messagingSenderId': "1069993443421",
-    'appId': "1:1069993443421:web:873c974f3016b773",
-    "serviceAccount": service_account_key
 }
 
 firebase = pyrebase.initialize_app(config)
 
-# cred = credentials.Certificate(service_account_key)
-# firebase_admin.initialize_app(cred)
-
 
 def index(request):
-    return HttpResponse('Index')
+
+    user_py = request.user
+    """:type : pupifire.models.User"""
+
+    custom_token = user_py.custom_token
+
+    user_fb = firebase.auth().sign_in_with_custom_token(custom_token)
+
+    return redirect(reverse('users'))
 
 
-def login(request):
+def user_login(request):
     return render(request, 'login.html')
+
+
+def user_logout(request):
+    auth.logout(request)
+    return redirect(reverse('login'))
 
 
 def tos(request):
@@ -42,11 +43,25 @@ def tos(request):
 
 
 def privacy_policy(request):
-    return HttpResponse("Política de privacidad...")
+    return render(request, 'privacy_policy.html')
 
 
+@login_required
 def users(request):
+    user = request.user
+    """:type : pupifire.models.User"""
+
     db = firebase.database()
-    firebase_users = db.child("users").get()
-    result = firebase_users.val()
-    return HttpResponse(str(result))
+    datasnapshot = db.child('users').child(user.uid).get(user.id_token)
+
+    value = datasnapshot.val()
+
+    user.last_name = value.get('lastname')
+    user.first_name = value.get('names')
+    user.photo_url = value.get('url_image')
+    user.comment = value.get('comment')
+    user.save()
+
+
+
+    return render(request, 'profile.html', {'user': user})
