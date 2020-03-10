@@ -12,11 +12,11 @@ class User(AbstractUser):
     email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=32, blank=True, null=True)
     comment = models.CharField(max_length=512, blank=True, null=True)
-    anonymous = models.BooleanField()
+    anonymous = models.BooleanField(default=True)
 
-    custom_token = models.CharField(max_length=2048, blank=True, null=True)
-    id_token = models.CharField(max_length=1024, blank=True, null=True)
+    id_token = models.CharField(max_length=2048, blank=True, null=True)
     refresh_token = models.CharField(max_length=2048, blank=True, null=True)
+    custom_token = models.CharField(max_length=2048, blank=True, null=True)
 
     def __str__(self):
         return "{lastname}, {names}".format(lastname=self.last_name, names=self.names)
