@@ -1,5 +1,6 @@
 import json
 import os
+from copy import deepcopy
 
 import pyrebase
 from pyrebase import pyrebase
@@ -38,6 +39,7 @@ def with_token_verify(request_method):
                 raise e
             if last:
                 raise FirebaseDatabaseException(160, 'Último intento de autenticación fracasado')
+            raise FirebaseDatabaseException(200, 'El token no es válido')
 
     def wrap_request_method(database, *args, **kwargs):
 
@@ -48,16 +50,18 @@ def with_token_verify(request_method):
             )
 
         user_py = database.user
-
-        if not isinstance(database.user, User):
+        if not isinstance(user_py, User):
             raise FirebaseDatabaseException(
                 110,
                 'La instancia no posee un atributo "user" del tipo "pupifire.models.User"'
             )
 
         id_token = user_py.id_token
-
-        make_request(database, *args, token=id_token, last=False, **kwargs)
+        try:
+            return make_request(deepcopy(database), *args, token=id_token, last=False, **kwargs)
+        except FirebaseDatabaseException as fbe:
+            if fbe.code != 200:
+                raise fbe
 
         # Si no tenemos un refreshToken ni un customToken le pedimos al usuario que vuelva a autenticarse.
         if not user_py.refresh_token and not user_py.custom_token:
@@ -75,7 +79,11 @@ def with_token_verify(request_method):
         # Si conseguimos actualizar el token guardamos los datos e intentamos nuevamente la consulta
         if user_fb:
             update_user(user_py, user_fb)
-            make_request(database, *args, token=user_py.id_token, last=False, **kwargs)
+            try:
+                return make_request(deepcopy(database), *args, token=id_token, last=False, **kwargs)
+            except FirebaseDatabaseException as fbe:
+                if fbe.code != 200:
+                    raise fbe
 
         # Si tenemos un customToken intentamos actualizar el token
         user_fb = None
@@ -88,7 +96,11 @@ def with_token_verify(request_method):
 
         if user_fb:
             update_user(user_py, user_fb)
-            make_request(database, *args, token=user_py.id_token, last=True, **kwargs)
+            try:
+                return make_request(deepcopy(database), *args, token=id_token, last=True, **kwargs)
+            except FirebaseDatabaseException as fbe:
+                if fbe.code != 200:
+                    raise fbe
 
         raise FirebaseDatabaseException(140, 'Se agotaron los intentos de autenticación')
 
@@ -96,6 +108,10 @@ def with_token_verify(request_method):
 
 
 class UserDataBase(pyrebase.Database):
+
+    def __init__(self, credentials, api_key, database_url, requests, user):
+        super().__init__(credentials, api_key, database_url, requests)
+        self.user = user
 
     @with_token_verify
     def get(self, token=None, json_kwargs=None):
@@ -127,9 +143,7 @@ class UserDataBase(pyrebase.Database):
 
 
 def get_database(user: User):
-    user_database = UserDataBase(firebase.credentials, firebase.api_key, firebase.database_url, firebase.requests)
-    user_database.user = user
-    return user_database
+    return UserDataBase(firebase.credentials, firebase.api_key, firebase.database_url, firebase.requests, user)
 
 
 def sign_in_with_custom_token(custom_token):

@@ -3,6 +3,7 @@
 import json
 import os
 from collections import OrderedDict
+from copy import deepcopy
 
 from django.test import SimpleTestCase, TestCase
 from firebase_admin import auth
@@ -57,17 +58,23 @@ class DataBase(SimpleTestCase):
 
     def test_get_user(self):
 
+        # Creamos un token personalizado para el usuario usando la API de Firebase
         custom_token = auth.create_custom_token(uid)
         self.assertIsInstance(custom_token, bytes)
 
+        # Logueamos al usuario y obtenemos un token con la librería Pyrebase
         sign_in = firebase.auth().sign_in_with_custom_token(custom_token.decode('utf-8'))
         self.assertIsInstance(sign_in, dict)
 
         id_token = sign_in.get('idToken')
         self.assertIsInstance(id_token, str)
 
-        database = firebase.database().child('users').child(uid)
-        user_result = database.get(id_token)
+        user = User()
+        user.id_token = id_token
+
+        # Hacemos una consulta usando el token de Pyrebase
+        database = get_database(user).child('users').child(uid)
+        user_result = database.get()
         self.assertIsInstance(user_result, PyreResponse)
 
         user_key = user_result.key()
