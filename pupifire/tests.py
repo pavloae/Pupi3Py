@@ -71,10 +71,11 @@ class DataBase(SimpleTestCase):
 
         user = User()
         user.id_token = id_token
+        user.custom_token = custom_token.decode('utf-8')
 
         # Hacemos una consulta usando el token de Pyrebase
         database = get_database(user).child('users').child(uid)
-        user_result = database.get()
+        user_result = database.get('token')
         self.assertIsInstance(user_result, PyreResponse)
 
         user_key = user_result.key()
