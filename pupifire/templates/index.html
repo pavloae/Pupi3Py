@@ -25,26 +25,17 @@
         <h1>Hello, world!</h1>
 
         <div class="container">
-            <div class="col">
-                <img src="{% static "img/pupi.jpg" %}" class="rounded float-left img-thumbnail" alt="Imagen">
-            </div>
-            <div class="col">
-                <div class="row">
-                    <label for="surname">Apellido</label><input id="surname" type="text">
+            <div class="row">
+                <div class="col">
+                    <a href="{% url 'profile' %}">
+                        <img src="{% static "img/pupi.jpg" %}" class="rounded float-left img-thumbnail" alt="Imagen">
+                    </a>
                 </div>
-                <div class="row">
-                    <label for="surname">Nombre</label><input id="names" type="text">
+                <div class="col">
+                    <img src="{% static "img/pupi.jpg" %}" class="rounded float-left img-thumbnail" alt="Imagen">
                 </div>
-                <div class="row">
-                    <label for="surname">Comentario</label><input id="comment" type="text">
-                </div>
-                <div class="row">
-                    <div class="col">
-                        <label for="surname">Teléfono</label><input id="phone" type="text">
-                    </div>
-                    <div class="col">
-                        <label for="surname">Compartir</label><input id="share" type="checkbox">
-                    </div>
+                <div class="col">
+                    <img src="{% static "img/pupi.jpg" %}" class="rounded float-left img-thumbnail" alt="Imagen">
                 </div>
             </div>
         </div>

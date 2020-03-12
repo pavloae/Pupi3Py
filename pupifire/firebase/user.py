@@ -27,16 +27,13 @@ def with_token_verify(request_method):
         user.refresh_token = retrieved_tokens.get('refreshToken')
         user.save()
 
-    def get_args(*args, **kwargs):
+    def get_database_args(*args, **kwargs):
 
         id_token = kwargs.pop('id_token', None)
 
-        firebase_ref = args[0]
-
-        if issubclass(type(firebase_ref), pyrebase.Database):
-            data = kwargs.get('data', None)
-            if request_method.__name__ in ['push', 'set', 'update'] and len(args) > 1:
-                data = args[1]
+        data = kwargs.get('data', None)
+        if request_method.__name__ in ['push', 'set', 'update'] and len(args) > 1:
+            data = args[1]
 
         token = kwargs.get('token', None)
         if id_token:
@@ -59,15 +56,46 @@ def with_token_verify(request_method):
         else:
             return token
 
+    def get_storage_args(*args, **kwargs):
+        id_token = kwargs.pop('id_token', None)
+
+        token = kwargs.get('token', None)
+        if id_token:
+            token = id_token
+        elif request_method.__name__ in ['put', 'download'] and len(args) > 2:
+            token = args[2]
+        elif request_method.__name__ in ['get_url']:
+            token = args[1]
+
+        if request_method.__name__ == 'put':
+            return (kwargs.get('file') or args[1]), token
+
+        if request_method.__name__ == 'download':
+            return (kwargs.get('filename') or args[1]), token
+
+        if request_method.__name__ == 'get_url':
+            return token
+
+    def get_args(*args, **kwargs):
+        if issubclass(type(args[0]), pyrebase.Database):
+            return get_database_args(*args, **kwargs)
+        elif issubclass(type(args[0]), pyrebase.Storage):
+            return get_storage_args()
+        raise FirebaseException(
+            100,
+            'El decorador está aplicado a un método que no es de la clase "pyrebase.Database" ni ""pyrebase.Storage'
+        )
+
     def wrap_request_method(*args, **kwargs):
 
         if request_method.__name__ not in ['get', 'push', 'set', 'update', 'remove', 'put', 'download', 'get_url']:
             raise FirebaseException(110, 'No se aplicó el decorador sobre un método permitido')
 
         firebase_ref = args[0]
-        if not issubclass(type(firebase_ref), pyrebase.Database) or not issubclass(type(firebase_ref), pyrebase.Storage):
+        if not (issubclass(type(firebase_ref), pyrebase.Database) or issubclass(type(firebase_ref), pyrebase.Storage)):
             raise FirebaseException(
-                100, 'El decorador está aplicado a un método que no es de la clase "pyrebase.Database"'
+                100,
+                'El decorador está aplicado a un método que no es de la clase "pyrebase.Database" ni ""pyrebase.Storage'
             )
 
         # Intentamos hacer la consulta con una copia de la referencia.
@@ -160,12 +188,15 @@ class UserStorage(pyrebase.Storage):
         super().__init__(credentials, storage_bucket, requests)
         self.user = user
 
+    @with_token_verify
     def put(self, file, token=None):
         return super().put(file, token)
 
+    @with_token_verify
     def download(self, filename, token=None):
         super().download(filename, token)
 
+    @with_token_verify
     def get_url(self, token):
         return super().get_url(token)
 

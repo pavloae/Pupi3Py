@@ -1,14 +1,13 @@
 from django import forms
 
-from pupifire.models import User
 
+class UserProfileForm(forms.Form):
 
-class UpdateProfile(forms.ModelForm):
-    last_name = forms.CharField(required=False)
-    first_name = forms.CharField(required=False)
-    email = forms.EmailField(required=True)
-    phone = forms.CharField(required=True)
+    photo_profile = forms.ImageField(label='Archivo de contactos', allow_empty_file=True, required=False)
 
-    class Meta:
-        model = User
-        fields = ('last_name', 'first_name', 'email', 'phone')
+    last_name = forms.CharField(label='Apellido', required=False)
+    first_name = forms.CharField(label='Nombres', required=False)
+    comment = forms.CharField(label='Comentario', required=False)
+
+    phone = forms.CharField(label="Teléfono", disabled=True, required=False)
+    share = forms.CheckboxInput()
