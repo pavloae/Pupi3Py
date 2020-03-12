@@ -4,13 +4,15 @@ from json import JSONDecodeError
 from django.contrib import auth
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.http import HttpResponse
 
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from pupifire.firebase.admin import request_custom_token, FirebaseAuthException
-from pupifire.firebase.user import get_database, sign_in_with_custom_token, FirebaseException, get_storage
+from pupifire.firebase.user import get_database, sign_in_with_custom_token, FirebaseException, get_storage, firebase
+from pupifire.forms import UserProfileForm
 from pupifire.models import User
 
 
@@ -77,17 +79,50 @@ def profile(request):
     user = request.user
     """:type : pupifire.models.User"""
 
-    try:
-        datasnapshot = get_database(user).child('users').child(user.uid).get()
-    except FirebaseException as e:
-        return redirect(reverse('login'))
+    if request.method == 'POST':
+        user_profile_form = UserProfileForm(data=request.POST, files=request.FILES)
+        if user_profile_form.is_valid():
+            photo_profile = request.FILES.get('photo_profile')
+            """:type : InMemoryUploadedFile"""
+            if photo_profile:
+                name = photo_profile.name.encode('utf-8').decode('utf-8')
+                firebase.storage().child(user.uid).child(name).put(photo_profile.file)
+                photo_url = firebase.storage().child(user.uid).child(name).get_url(user.id_token)
 
-    value = datasnapshot.val()
+                data = {
+                    'lastname': user_profile_form.cleaned_data['last_name'],
+                    'names': user_profile_form.cleaned_data['first_name'],
+                    'comment': user_profile_form.cleaned_data['comment'],
+                    'url_image': photo_url
+                }
 
-    user.last_name = value.get('lastname')
-    user.first_name = value.get('names')
-    user.photo_url = value.get('url_image')
-    user.comment = value.get('comment')
-    user.save()
+                get_database(user).child('users').child(user.uid).update(data, user.id_token)
 
-    return render(request, 'profile.html', {'user': user})
+        return redirect(reverse('index'))
+
+    else:
+
+        try:
+            datasnapshot = get_database(user).child('users').child(user.uid).get()
+        except FirebaseException:
+            return redirect(reverse('login'))
+
+        value = datasnapshot.val()
+
+        user.last_name = value.get('lastname')
+        user.first_name = value.get('names')
+        user.photo_url = value.get('url_image')
+        user.comment = value.get('comment')
+        user.save()
+
+        form = UserProfileForm(
+            initial={
+                'last_name': user.last_name,
+                'first_name': user.first_name,
+                'comment': user.comment,
+                'phone': user.phone,
+                'share': True
+            }
+        )
+
+    return render(request, 'profile.html', {'user': user, 'form': form})

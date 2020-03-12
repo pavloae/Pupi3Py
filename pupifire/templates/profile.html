@@ -24,29 +24,43 @@
 
         <h1>Información de perfil</h1>
 
-        <div class="container">
-            <div class="col" style="width: 256px; height: 256px">
-                <img src="{{ user.photo_url }}" class="rounded float-left img-thumbnail" alt="Imagen">
-            </div>
-            <div class="col">
+        <div class="container shadow-lg">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
                 <div class="row">
-                    <label for="surname">Apellido</label><input id="surname" type="text" name="surname" value="{{ user.last_name }}">
-                </div>
-                <div class="row">
-                    <label for="surname">Nombre</label><input id="names" type="text" name="names" value="{{ user.first_name}}">
-                </div>
-                <div class="row">
-                    <label for="surname">Comentario</label><input id="comment" type="text" name="comment" value="{{ user.comment }}">
-                </div>
-                <div class="row">
-                    <div class="col">
-                        <label for="surname">Teléfono: {{ user.phone }}</label>
+                    <div class="col col-4">
+                        <img src="{{ user.photo_url }}" class="w-75 rounded shadow-lg m-4" alt="Imagen">
+                        {{ form.photo_profile }}
                     </div>
-                    <div class="col">
-                        <label for="surname">Compartir</label><input id="share" type="checkbox">
+                    <div class="col col-8">
+                        <div class="row m-auto p-4">
+                            <label>Apellido</label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="row m-auto p-4">
+                            <label>Nombres</label>
+                            {{ form.first_name}}
+                        </div>
+                        <div class="row m-auto p-4">
+                            <label>Comentarios</label>
+                            {{ form.comment }}
+                        </div>
+                        <div class="row m-auto p-4">
+                            <div class="col">
+                                {{ form.phone }}
+                            </div>
+                            <div class="col">
+                                {{ form.share }}
+                            </div>
+                        </div>
+                        <div class="d-flex flex-row-reverse">
+                            <button type="button" class="btn btn-primary m-4" onclick="submit();">Guardar</button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </form>
+
         </div>
 
         <!-- Optional JavaScript -->

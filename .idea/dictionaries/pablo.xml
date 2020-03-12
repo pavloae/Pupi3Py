@@ -2,8 +2,11 @@
   <dictionary name="pablo">
     <words>
       <w>databasereference</w>
+      <w>datasnapshot</w>
+      <w>lastname</w>
       <w>logueamos</w>
       <w>pupi</w>
+      <w>pupifire</w>
       <w>pyrebase</w>
     </words>
   </dictionary>
