@@ -1,6 +1,7 @@
 import json
 import os
 from copy import deepcopy
+from inspect import signature
 
 import pyrebase
 from pyrebase import pyrebase
@@ -20,131 +21,104 @@ with open(config_file) as json_file:
 firebase = pyrebase.initialize_app(config)
 
 
-def with_token_verify(request_method):
+def with_token_request(request_method):
 
-    def update_user(user, retrieved_tokens):
-        user.id_token = retrieved_tokens.get('idToken')
-        user.refresh_token = retrieved_tokens.get('refreshToken')
-        user.save()
-
-    def get_database_args(*args, **kwargs):
-
-        id_token = kwargs.pop('id_token', None)
-
-        data = kwargs.get('data', None)
-        if request_method.__name__ in ['push', 'set', 'update'] and len(args) > 1:
-            data = args[1]
-
-        token = kwargs.get('token', None)
-        if id_token:
-            token = id_token
-        elif request_method.__name__ in ['get', 'remove'] and len(args) > 1:
-            token = args[1]
-        elif request_method.__name__ in ['push', 'set', 'update'] and len(args) > 2:
-            token = args[1]
-
-        json_kwargs = kwargs.get('json_kwargs', {})
-        if request_method.__name__ in ['get'] and len(args) > 2:
-            json_kwargs = args[2]
-        elif request_method.__name__ in ['push', 'set', 'update'] and len(args) > 3:
-            json_kwargs = args[3]
-
-        if request_method.__name__ in ['push', 'set', 'update']:
-            return data, token, json_kwargs
-        elif request_method.__name__ == 'get':
-            return token, json_kwargs
-        else:
-            return token
-
-    def get_storage_args(*args, **kwargs):
-        id_token = kwargs.pop('id_token', None)
-
-        token = kwargs.get('token', None)
-        if id_token:
-            token = id_token
-        elif request_method.__name__ in ['put', 'download'] and len(args) > 2:
-            token = args[2]
-        elif request_method.__name__ in ['get_url']:
-            token = args[1]
-
-        if request_method.__name__ == 'put':
-            return (kwargs.get('file') or args[1]), token
-
-        if request_method.__name__ == 'download':
-            return (kwargs.get('filename') or args[1]), token
-
-        if request_method.__name__ == 'get_url':
-            return token
-
-    def get_args(*args, **kwargs):
-        if issubclass(type(args[0]), pyrebase.Database):
-            return get_database_args(*args, **kwargs)
-        elif issubclass(type(args[0]), pyrebase.Storage):
-            return get_storage_args()
-        raise FirebaseException(
-            100,
-            'El decorador está aplicado a un método que no es de la clase "pyrebase.Database" ni ""pyrebase.Storage'
-        )
+    token_args_position = list(signature(request_method).parameters.keys()).index('token')
 
     def wrap_request_method(*args, **kwargs):
 
-        if request_method.__name__ not in ['get', 'push', 'set', 'update', 'remove', 'put', 'download', 'get_url']:
-            raise FirebaseException(110, 'No se aplicó el decorador sobre un método permitido')
+        token = kwargs.pop('token', None)
+        if not token and len(args) > token_args_position:
+            token = args[token_args_position]
 
-        firebase_ref = args[0]
-        if not (issubclass(type(firebase_ref), pyrebase.Database) or issubclass(type(firebase_ref), pyrebase.Storage)):
+        reference = args[0]
+        if not (issubclass(type(reference), pyrebase.Database) or issubclass(type(reference), pyrebase.Storage)):
             raise FirebaseException(
                 100,
                 'El decorador está aplicado a un método que no es de la clase "pyrebase.Database" ni ""pyrebase.Storage'
             )
 
-        # Intentamos hacer la consulta con una copia de la referencia.
+        # Intentamos hacer la consulta con una copia de la referencia (Luego de hacer la consulta la clase borra el url)
         # Si se especificó un token y no es válido tratamos de conseguir un nuevo token.
         # Si surge otro problema propagamos la excepción.
         try:
-            return request_method(deepcopy(firebase_ref), *get_args(*args, **kwargs))
+            args_list = list(args)
+            args_list[0] = deepcopy(reference)
+            return request_method(*args_list, **kwargs)
+        except HTTPError as e:
+            if not token or e.args[0].response.status_code != 401:
+                raise e
+
+        # Tratamos de actualizar el token para volver a realizar la consulta
+        get_auth(reference.user).refresh_token()
+        try:
+            args_list = list(args)
+            args_list[token_args_position] = reference.user.id_token
+            return request_method(*args_list, **kwargs)
         except HTTPError as e:
             if e.args[0].response.status_code != 401:
                 raise e
 
-        # Si no hay un usuario especificado lanzamos una excepción
-        if not isinstance(firebase_ref.user, User):
-            raise FirebaseException(
-                120,
-                'La instancia no posee un atributo "user" del tipo "pupifire.models.User"'
-            )
-
-        # Si no tenemos un refreshToken ni un customToken le pedimos al usuario que vuelva a autenticarse.
-        if not firebase_ref.user.refresh_token and not firebase_ref.user.custom_token:
-            raise FirebaseTokenException(100, "No hay tokens para revalidar.")
-
-        # Si tenemos un refreshToken tratamos de actualizar el token para volver a realizar la consulta
-        if firebase_ref.user.refresh_token:
-            try:
-                update_user(firebase_ref.user, refresh(firebase_ref.user.refresh_token))
-                kwargs.update({'id_token': firebase_ref.user.id_token})
-                response = request_method(deepcopy(firebase_ref), *get_args(*args, **kwargs))
-                firebase_ref.user.save()
-                return response
-            except HTTPError as e:
-                if e.args[0].response.status_code != 401:
-                    raise e
-
-        # Si tenemos un customToken intentamos actualizar el token para hacer el último intento
-        if firebase_ref.user.custom_token:
-            try:
-                update_user(firebase_ref.user, sign_in_with_custom_token(firebase_ref.user.custom_token))
-                kwargs.update({'id_token': firebase_ref.user.id_token})
-                response = request_method(deepcopy(firebase_ref), *get_args(*args, **kwargs))
-                firebase_ref.user.save()
-                return response
-            except HTTPError as e:
-                if e.args[0].response.status_code != 401:
-                    raise e
-
         raise FirebaseTokenException(140, 'Se agotaron los intentos de autenticación')
 
     return wrap_request_method
+
+
+class UserAuth(pyrebase.Auth):
+
+    def __init__(self, api_key, requests, credentials, user):
+        super().__init__(api_key, requests, credentials)
+        self.user = user
+
+    def refresh_token(self):
+
+        if not isinstance(self.user, User):
+            raise FirebaseException(120, 'La instancia no posee un atributo "user" del tipo "pupifire.models.User"')
+
+        if not self.user.refresh_token:
+            return self.__sign_in_with_custom_token()
+
+        try:
+            dict_token = super().refresh(self.user.refresh_token)
+            self.__update_user(dict_token)
+            return dict_token
+        except HTTPError as e:
+            if e.args[0].response.status_code != 401:
+                raise e
+
+        return self.__sign_in_with_custom_token()
+
+    def __sign_in_with_custom_token(self):
+
+        if not isinstance(self.user, User):
+            raise FirebaseException(120, 'La instancia no posee un atributo "user" del tipo "pupifire.models.User"')
+
+        if not self.user.custom_token:
+            raise FirebaseTokenException(100, "No hay tokens para revalidar.")
+
+        try:
+            dict_token = self.sign_in_with_custom_token(self.user.custom_token)
+            self.__update_user(dict_token)
+            return dict_token
+        except HTTPError as e:
+            if e.args[0].response.status_code != 401:
+                raise e
+
+        raise FirebaseTokenException(140, 'Se agotaron los intentos de autenticación')
+
+    def __update_user(self, dict_token):
+        self.user.id_token = dict_token.get('idToken')
+        self.user.refresh_token = dict_token.get('refreshToken')
+        self.user.save()
+
+    def get_account_info(self, id_token):
+        try:
+            return super().get_account_info(id_token)
+        except HTTPError as e:
+            if e.args[0].response.status_code != 401:
+                raise e
+        self.refresh_token()
+        return super().get_account_info(self.user.id_token)
 
 
 class UserDataBase(pyrebase.Database):
@@ -153,31 +127,31 @@ class UserDataBase(pyrebase.Database):
         super().__init__(credentials, api_key, database_url, requests)
         self.user = user
 
-    @with_token_verify
+    @with_token_request
     def get(self, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().get(token, json_kwargs)
 
-    @with_token_verify
+    @with_token_request
     def push(self, data, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().push(data, token, json_kwargs)
 
-    @with_token_verify
+    @with_token_request
     def set(self, data, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().set(data, token, json_kwargs)
 
-    @with_token_verify
+    @with_token_request
     def update(self, data, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().update(data, token, json_kwargs)
 
-    @with_token_verify
+    @with_token_request
     def remove(self, token=None):
         return super().remove(token)
 
@@ -188,17 +162,21 @@ class UserStorage(pyrebase.Storage):
         super().__init__(credentials, storage_bucket, requests)
         self.user = user
 
-    @with_token_verify
+    @with_token_request
     def put(self, file, token=None):
         return super().put(file, token)
 
-    @with_token_verify
+    @with_token_request
     def download(self, filename, token=None):
         super().download(filename, token)
 
-    @with_token_verify
+    @with_token_request
     def get_url(self, token):
         return super().get_url(token)
+
+
+def get_auth(user: User):
+    return UserAuth(firebase.api_key, firebase.requests, firebase.credentials, user)
 
 
 def get_database(user: User):
@@ -207,14 +185,6 @@ def get_database(user: User):
 
 def get_storage(user: User):
     return UserStorage(firebase.credentials, firebase.storage_bucket, firebase.requests, user)
-
-
-def sign_in_with_custom_token(custom_token):
-    return firebase.auth().sign_in_with_custom_token(custom_token)
-
-
-def refresh(refresh_token):
-    return firebase.auth().refresh(refresh_token)
 
 
 class FirebaseException(Exception):

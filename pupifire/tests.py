@@ -3,7 +3,7 @@
 import json
 import os
 from collections import OrderedDict
-from copy import deepcopy
+from inspect import signature
 
 from django.test import SimpleTestCase, TestCase
 from firebase_admin import auth
@@ -12,7 +12,7 @@ from requests import HTTPError
 
 from Pupi3Py import settings
 from pupifire.firebase.admin import default_app
-from pupifire.firebase.user import firebase, get_database
+from pupifire.firebase.user import firebase, get_database, UserDataBase
 from pupifire.models import User
 
 uid = 'oyWO9VIYczOtUaWex34L37cC5583'
@@ -97,6 +97,6 @@ class DataBaseUser(TestCase):
         self.assertIsNotNone(user)
 
         database = get_database(user).child('users').child(user.uid)
-        datasnapshot = database.get()
+        datasnapshot = database.get('user.id_token')
 
         self.assertIsNotNone(datasnapshot)
