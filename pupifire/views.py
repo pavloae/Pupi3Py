@@ -10,7 +10,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from pupifire.firebase.admin import request_custom_token, FirebaseAuthException
-from pupifire.firebase.user import get_database, FirebaseException, get_storage, firebase
+from pupifire.firebase.user import get_database, FirebaseException, get_storage, firebase, get_auth
 from pupifire.forms import UserProfileForm
 from pupifire.models import User
 
@@ -49,7 +49,7 @@ def verify(request):
             user_py.custom_token = custom_token
             user_py.refresh_token = sign_in.get('refreshToken')
             user_py.id_token = sign_in.get('id_token')
-            user_py.email = user.get('email', None)
+            user_py.email = user.get('email') or ''
             user_py.phone = user.get('phoneNumber', None)
             user_py.save()
 
@@ -105,8 +105,13 @@ def profile(request):
 
         # Traemos la información del usuario desde Firebase Database
         try:
-            # account_info = firebase.auth().get_account_info(user.id_token).get('users')[0].get('providerUserInfo')[0]
+            if not user.id_token:
+                get_auth(user).refresh_token()
             profile = get_database(user).child('users').child(user.uid).get(user.id_token)
+            account_info = get_auth(user).get_account_info(user.id_token)
+            user_info = account_info.get('users')[0]
+            provider = user_info.get('providerUserInfo')[0]
+            account_info = get_auth(user).get_account_info(user.id_token).get('users')[0].get('providerUserInfo')[0]
             # phone = get_database(user).child('phones').child(user.phone).get(user.id_token)
             # email = get_database(user).child('emails').child(user.email).get(user.id_token)
         except FirebaseException:

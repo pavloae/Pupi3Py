@@ -3,8 +3,7 @@ import os
 from copy import deepcopy
 from inspect import signature
 
-import pyrebase
-from pyrebase import pyrebase
+from pyrebase.pyrebase import Auth, Database, Storage, initialize_app
 from requests import HTTPError
 
 from Pupi3Py import settings
@@ -18,7 +17,7 @@ config_file = os.path.join(
 with open(config_file) as json_file:
     config = json.load(json_file)
 
-firebase = pyrebase.initialize_app(config)
+firebase = initialize_app(config)
 
 
 def with_token_request(request_method):
@@ -32,7 +31,8 @@ def with_token_request(request_method):
             token = args[token_args_position]
 
         reference = args[0]
-        if not (issubclass(type(reference), pyrebase.Database) or issubclass(type(reference), pyrebase.Storage)):
+        ref_type = type(reference)
+        if not (issubclass(ref_type, Database) or issubclass(ref_type, Storage) or issubclass(ref_type, Auth)):
             raise FirebaseException(
                 100,
                 'El decorador está aplicado a un método que no es de la clase "pyrebase.Database" ni ""pyrebase.Storage'
@@ -64,7 +64,7 @@ def with_token_request(request_method):
     return wrap_request_method
 
 
-class UserAuth(pyrebase.Auth):
+class UserAuth(Auth):
 
     def __init__(self, api_key, requests, credentials, user):
         super().__init__(api_key, requests, credentials)
@@ -111,17 +111,15 @@ class UserAuth(pyrebase.Auth):
         self.user.refresh_token = dict_token.get('refreshToken')
         self.user.save()
 
-    def get_account_info(self, id_token):
-        try:
-            return super().get_account_info(id_token)
-        except HTTPError as e:
-            if e.args[0].response.status_code != 401:
-                raise e
-        self.refresh_token()
-        return super().get_account_info(self.user.id_token)
+    @with_token_request
+    def get_account_info(self, token):
+        if not token:
+            self.refresh_token()
+            token = self.user.id_token
+        return super().get_account_info(token)
 
 
-class UserDataBase(pyrebase.Database):
+class UserDataBase(Database):
 
     def __init__(self, credentials, api_key, database_url, requests, user):
         super().__init__(credentials, api_key, database_url, requests)
@@ -156,7 +154,7 @@ class UserDataBase(pyrebase.Database):
         return super().remove(token)
 
 
-class UserStorage(pyrebase.Storage):
+class UserStorage(Storage):
 
     def __init__(self, credentials, storage_bucket, requests, user):
         super().__init__(credentials, storage_bucket, requests)
