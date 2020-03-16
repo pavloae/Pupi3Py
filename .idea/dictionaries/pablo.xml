@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="pablo">
     <words>
+      <w>csrfmiddlewaretoken</w>
       <w>databasereference</w>
       <w>datasnapshot</w>
       <w>lastname</w>

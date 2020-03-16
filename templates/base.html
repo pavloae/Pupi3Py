@@ -1,0 +1,45 @@
+{% if not request.user.is_authenticated %}
+    <meta http-equiv="refresh" content="0; URL='/accounts/login'" />
+{% endif %}
+
+{% load static %}
+
+<!doctype html>
+
+<html lang="es">
+    <head>
+        {% block head %}
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <meta name="description" content="">
+            <meta name="author" content="">
+            <meta name="generator" content="Jekyll v3.8.5">
+            <title>{% block head_title %}Pupitres{% endblock %}</title>
+            {% include "head_css.html" %}
+        {% endblock head %}
+    </head>
+
+    <body class="bg-light">
+        {% block body %}
+            <!-- navbar -->
+            {% block navbar %}
+                {% include "navbar.html" %}
+            {% endblock %}
+
+            <div role="main" class="container">
+                {% block brief %}
+
+                {% endblock brief %}
+            </div>
+
+            {% block content %}
+
+            {% endblock content %}
+
+            <!-- Footer -->
+            {% block javascript %}
+                {% include "footer_js.html" %}
+            {% endblock %}
+        {% endblock %}
+    </body>
+</html>

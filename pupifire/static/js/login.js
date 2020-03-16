@@ -32,7 +32,6 @@ const uiConfig = {
     },
     'callbacks': {
         'signInSuccessWithAuthResult': function (authResult, redirectUrl) {
-            console.log(JSON.stringify(authResult));
             if (authResult.user) {
                 handleSignedInUser(authResult.user);
             }
@@ -43,13 +42,14 @@ const uiConfig = {
 };
 
 function handleSignedInUser(user){
-    const csrf = document.getElementsByName('csrfmiddlewaretoken')[0].value;
-    const user_json = JSON.stringify(user);
     const form = document.createElement('form');
     document.body.appendChild(form);
     form.method = 'post';
     form.action = "/verify/";
-    data = {user: user_json, csrfmiddlewaretoken: csrf};
+    let data = {
+        user: JSON.stringify(user),
+        csrfmiddlewaretoken: document.getElementsByName('csrfmiddlewaretoken')[0].value
+    };
     for (const name in data) {
         const input = document.createElement('input');
         input.type = 'hidden';

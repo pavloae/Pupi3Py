@@ -9,7 +9,6 @@ from requests import HTTPError
 from Pupi3Py import settings
 from pupifire.models import User
 
-
 config_file = os.path.join(
     os.path.dirname(settings.BASE_DIR), 'Pupi3Py.conf/pupitres-firebase-pyrebase.json'
 )
@@ -20,7 +19,7 @@ with open(config_file) as json_file:
 firebase = initialize_app(config)
 
 
-def with_token_request(request_method):
+def with_token_update(request_method):
 
     token_args_position = list(signature(request_method).parameters.keys()).index('token')
 
@@ -46,7 +45,7 @@ def with_token_request(request_method):
             args_list[0] = deepcopy(reference)
             return request_method(*args_list, **kwargs)
         except HTTPError as e:
-            if not token or e.args[0].response.status_code != 401:
+            if e.args[0].response.status_code != 401 and token is None:
                 raise e
 
         # Tratamos de actualizar el token para volver a realizar la consulta
@@ -111,7 +110,7 @@ class UserAuth(Auth):
         self.user.refresh_token = dict_token.get('refreshToken')
         self.user.save()
 
-    @with_token_request
+    @with_token_update
     def get_account_info(self, token):
         if not token:
             self.refresh_token()
@@ -125,31 +124,31 @@ class UserDataBase(Database):
         super().__init__(credentials, api_key, database_url, requests)
         self.user = user
 
-    @with_token_request
+    @with_token_update
     def get(self, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().get(token, json_kwargs)
 
-    @with_token_request
+    @with_token_update
     def push(self, data, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().push(data, token, json_kwargs)
 
-    @with_token_request
+    @with_token_update
     def set(self, data, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().set(data, token, json_kwargs)
 
-    @with_token_request
+    @with_token_update
     def update(self, data, token=None, json_kwargs=None):
         if json_kwargs is None:
             json_kwargs = {}
         return super().update(data, token, json_kwargs)
 
-    @with_token_request
+    @with_token_update
     def remove(self, token=None):
         return super().remove(token)
 
@@ -160,15 +159,15 @@ class UserStorage(Storage):
         super().__init__(credentials, storage_bucket, requests)
         self.user = user
 
-    @with_token_request
+    @with_token_update
     def put(self, file, token=None):
         return super().put(file, token)
 
-    @with_token_request
+    @with_token_update
     def download(self, filename, token=None):
         super().download(filename, token)
 
-    @with_token_request
+    @with_token_update
     def get_url(self, token):
         return super().get_url(token)
 

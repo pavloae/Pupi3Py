@@ -29,6 +29,28 @@ def request_custom_token(uid):
         raise FirebaseAuthException(140, 'No se pudo transformar el token a una cadena')
 
 
+def pull(user):
+    user_record = auth.get_user(user.uid, default_app)
+    """:type : auth.UserRecord"""
+
+    user.email = user_record.email or ''
+    user.phone_number = user_record.phone_number
+    user.email_verified = user_record.email_verified
+    user.display_name = user_record.display_name
+    user.photo_url = user_record.photo_url
+    user.save()
+
+
+def push(user):
+    auth.update_user(
+        user.uid,
+        email=user.email or None,
+        phone_number=user.phone_number,
+        email_verified=user.email_verified,
+        display_name=user.display_name,
+        photo_url=user.photo_url)
+
+
 class FirebaseAuthException(Exception):
     def __init__(self, code, message) -> None:
         self.code = code

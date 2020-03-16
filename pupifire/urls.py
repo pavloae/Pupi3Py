@@ -2,7 +2,7 @@ from django.urls import path
 
 from pupifire import views
 
-app = 'pupifire'
+app_name = 'pupifire'
 urlpatterns = [
     path('', views.index, name='root'),
     path('index/', views.index, name='index'),
