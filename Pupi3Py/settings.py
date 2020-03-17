@@ -114,9 +114,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
-AUTH_USER_MODEL = 'pupifire.User'
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
@@ -124,4 +121,6 @@ STATICFILES_DIR = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
-LOGIN_URL = '/login/'
+AUTH_USER_MODEL = 'pupifire.User'
+
+LOGOUT_REDIRECT_URL = '/accounts/login/'

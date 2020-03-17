@@ -5,12 +5,8 @@
     Pupitres | Home
 {% endblock head_title %}
 
-{% block brief %}
-
-{% endblock brief %}
-
-{% block content %}
-
+{% block style %}
+    {{ block.super }}
     <style>
         body {
             background-image: url('{% static "img/pizarron.jpg" %}');
@@ -19,5 +15,12 @@
             background-size: cover;
         }
     </style>
+{% endblock %}
+
+{% block brief %}
+
+{% endblock brief %}
+
+{% block content %}
 
 {% endblock content %}

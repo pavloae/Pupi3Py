@@ -1,12 +1,9 @@
-{% if not request.user.is_authenticated %}
-    <meta http-equiv="refresh" content="0; URL='/accounts/login'" />
-{% endif %}
-
 {% load static %}
 
 <!doctype html>
 
 <html lang="es">
+
     <head>
         {% block head %}
             <meta charset="utf-8">
@@ -17,10 +14,17 @@
             <title>{% block head_title %}Pupitres{% endblock %}</title>
             {% include "head_css.html" %}
         {% endblock head %}
+
+        {% block style %}
+
+        {% endblock %}
+
     </head>
 
     <body class="bg-light">
+
         {% block body %}
+
             <!-- navbar -->
             {% block navbar %}
                 {% include "navbar.html" %}
@@ -40,6 +44,8 @@
             {% block javascript %}
                 {% include "footer_js.html" %}
             {% endblock %}
+
         {% endblock %}
     </body>
+
 </html>

@@ -1,0 +1,27 @@
+{% extends 'inicio.html' %}
+
+{% block head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/calendar.css">
+{% endblock %}
+
+{% block content %}
+    <h3>Agenda</h3>
+
+    <div id="calendar"></div>
+
+    <script type="text/javascript" src="js/vendor/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="js/vendor/underscore-min.js"></script>
+    <script type="text/javascript" src="js/calendar.js"></script>
+    <script type="text/javascript">
+        const calendar = $("#calendar").calendar(
+            {
+                tmpl_path: "/tmpls/",
+                events_source: function () {
+                    return [];
+                }
+            });
+    </script>
+
+{% endblock %}

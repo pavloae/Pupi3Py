@@ -1,4 +1,6 @@
 import json
+from calendar import calendar
+from datetime import datetime
 from json import JSONDecodeError
 
 from django.contrib import auth
@@ -132,3 +134,9 @@ def profile(request):
         })
 
     return render(request, 'profile.html', {'form': form})
+
+
+@login_required
+def schedule(request):
+    date = datetime(2009, 4, 1)
+    return render(request, 'schedule.html', {'date': date})
