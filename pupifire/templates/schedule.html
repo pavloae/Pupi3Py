@@ -1,27 +1,177 @@
 {% extends 'inicio.html' %}
+{% load static %}
 
 {% block head %}
+
     {{ block.super }}
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/calendar.css">
+
+    <link href='{% static "fullcalendar/core/main.css" %}' rel='stylesheet' />
+    <link href='{% static "fullcalendar/daygrid/main.css" %}' rel='stylesheet' />
+    <link href='{% static "fullcalendar/timegrid/main.css" %}' rel='stylesheet' />
+    <link href='{% static "fullcalendar/list/main.css" %}' rel='stylesheet' />
+    <script src='{% static "fullcalendar/core/main.js" %}'></script>
+    <script src='{% static "fullcalendar/interaction/main.js" %}'></script>
+    <script src='{% static "fullcalendar/daygrid/main.js" %}'></script>
+    <script src='{% static "fullcalendar/timegrid/main.js" %}'></script>
+    <script src='{% static "fullcalendar/list/main.js" %}'></script>
+    <script src='{% static "fullcalendar/core/locales/es.js" %}'></script>
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const Calendar = FullCalendar.Calendar;
+            const Draggable = FullCalendarInteraction.Draggable;
+
+            /* initialize the external events
+            -----------------------------------------------------------------*/
+
+            const containerEl = document.getElementById('external-events-list');
+            new Draggable(containerEl, {
+                itemSelector: '.fc-event',
+                eventData: function(eventEl) {
+                    return {
+                      title: eventEl.innerText.trim()
+                    }
+                }
+            });
+
+            //// the individual way to do it
+            // var containerEl = document.getElementById('external-events-list');
+            // var eventEls = Array.prototype.slice.call(
+            //   containerEl.querySelectorAll('.fc-event')
+            // );
+            // eventEls.forEach(function(eventEl) {
+            //   new Draggable(eventEl, {
+            //     eventData: {
+            //       title: eventEl.innerText.trim(),
+            //     }
+            //   });
+            // });
+
+            /* initialize the calendar
+            -----------------------------------------------------------------*/
+
+            const calendarEl = document.getElementById('calendar');
+            var calendar = new Calendar(calendarEl, {
+                locale: 'es',
+                plugins: [ 'interaction', 'dayGrid', 'timeGrid', 'list' ],
+                header: {
+                    left: 'prev,today,next',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                dateClick: function(info) {
+                    console.log('clicked on ' + info.dateStr);
+                },
+                eventClick: function(event) {
+                    console.log('clicked on ' + JSON.stringify(event.toString()));
+                },
+                editable: true,
+                droppable: true, // this allows things to be dropped onto the calendar
+                drop: function(arg) {
+                    // is the "remove after drop" checkbox checked?
+                    if (document.getElementById('drop-remove').checked) {
+                        // if so, remove the element from the "Draggable Events" list
+                        arg.draggedEl.parentNode.removeChild(arg.draggedEl);
+                    }
+                },
+                defaultView: 'timeGridWeek',
+                hiddenDays: [0, 6],
+                minTime: '08:00:00',
+                events: [
+                    {% for event in events %}
+                        {
+                            title: '{{ event.title }}',
+                            start: '{{ event.start }}',
+                            end: '{{ event.end }}',
+                            url: '{{ event.url }}'
+                        }
+                    {% endfor %}
+                ]
+            });
+            calendar.setOption('locale', 'es');
+            calendar.render();
+
+        });
+
+    </script>
+
+    <style>
+
+        #wrap {
+        width: 1100px;
+            margin: 0 auto;
+        }
+
+        #external-events {
+            float: left;
+            width: 150px;
+            padding: 0 10px;
+            border: 1px solid #ccc;
+            background: #eee;
+            text-align: left;
+        }
+
+        #external-events h4 {
+            font-size: 16px;
+            margin-top: 0;
+            padding-top: 1em;
+        }
+
+        #external-events .fc-event {
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #external-events p {
+            margin: 1.5em 0;
+            font-size: 11px;
+            color: #666;
+        }
+
+        #external-events p input {
+            margin: 0;
+            vertical-align: middle;
+        }
+
+        #calendar {
+            float: right;
+            width: 900px;
+        }
+
+    </style>
+
 {% endblock %}
 
 {% block content %}
-    <h3>Agenda</h3>
 
-    <div id="calendar"></div>
+    <div id='wrap'>
 
-    <script type="text/javascript" src="js/vendor/jquery-1.9.1.js"></script>
-    <script type="text/javascript" src="js/vendor/underscore-min.js"></script>
-    <script type="text/javascript" src="js/calendar.js"></script>
-    <script type="text/javascript">
-        const calendar = $("#calendar").calendar(
-            {
-                tmpl_path: "/tmpls/",
-                events_source: function () {
-                    return [];
-                }
-            });
-    </script>
+        <div id='external-events'>
+
+          <h4>Materias</h4>
+
+          <div id='external-events-list'>
+            <div class='fc-event'>Estática y Resistencia de Materiales</div>
+            <div class='fc-event'>Matemática 3A</div>
+            <div class='fc-event'>Matemática 3B</div>
+            <div class='fc-event'>Matemática 2A</div>
+            <div class='fc-event'>Matemática 2B</div>
+          </div>
+
+          <p>
+            <input type='checkbox' id='drop-remove' />
+            <label for='drop-remove'>remover después de arrastrar</label>
+          </p>
+
+        </div>
+
+        <div id='calendar'></div>
+
+        <div style='clear:both'></div>
+
+        <div id='calendar2'></div>
+
+    </div>
 
 {% endblock %}

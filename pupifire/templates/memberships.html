@@ -1,0 +1,24 @@
+{% extends 'inicio.html' %}
+
+{% block content %}
+
+    <div class="container">
+        {% if memberships %}
+            {% for membership in memberships %}
+            <div class="card m-3 p-3" style="width: 64rem;">
+                <div class="card-body">
+                    <h5 class="card-title">{{ membership.value.course_name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ membership.value.institution_name }}</h6>
+                    <div class="row justify-content-between m-1">
+                        <a href="{% url 'pupifire:course_profile' membership.value.course_id %}" class="card-link">Editar</a>
+                        <a href="{% url 'pupifire:course_classes' membership.value.course_id %}" class="btn btn-primary">Ir a clase</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        {% else %}
+            <h3>No se encontraron cursos</h3>
+        {% endif %}
+    </div>
+
+{% endblock %}

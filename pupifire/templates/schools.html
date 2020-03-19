@@ -1,0 +1,29 @@
+{% extends 'inicio.html' %}
+
+{% block content %}
+    <div class="container shadow-lg">
+        {% if schools %}
+            <h3 style="color: blue">Provincia: {{ state }}</h3>
+            <h3 style="color: blue">Localidad: {{ city }}</h3>
+            <h5 style="color: blue">Localidades cercanas: {{ near_cities }}</h5>
+            <a href="./crear">Crear nueva escuela</a>
+            <div class="container">
+                {% for school in schools %}
+                    <a class="card m-2 p-0.5" href="{% url 'pupifire:schools_state' school.pk %}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ school.value.name }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ school.value.city }}</h6>
+                            <div class="row justify-content-between m-1">
+                                <a href="{% url 'pupifire:courses_school' school.pk %}" class="card-link">Cursos</a>
+                                <a href="{% url 'pupifire:subjects_school' school.pk %}" class="card-link">Materias</a>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <h3>No se encontraron escuelas</h3>
+            <a href="./crear">Crear nueva escuela</a>
+        {% endif %}
+    </div>
+{% endblock %}

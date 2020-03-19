@@ -2,9 +2,11 @@
 {% load static %}
 
 {% block content %}
-    <h1>Información de perfil</h1>
 
     <div class="container shadow-lg">
+
+            <h3 style="color: teal">Perfil del usuario</h3>
+
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row p-3">
@@ -56,7 +58,6 @@
             </form>
 
         </div>
-
 
 {% endblock %}
 

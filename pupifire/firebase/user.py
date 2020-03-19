@@ -9,6 +9,12 @@ from requests import HTTPError
 from Pupi3Py import settings
 from pupifire.models import User
 
+try:
+    from urllib.parse import urlencode, quote
+except:
+    from urllib import urlencode, quote
+
+
 config_file = os.path.join(
     os.path.dirname(settings.BASE_DIR), 'Pupi3Py.conf/pupitres-firebase-pyrebase.json'
 )
@@ -151,6 +157,23 @@ class UserDataBase(Database):
     @with_token_update
     def remove(self, token=None):
         return super().remove(token)
+
+    def build_request_url(self, token):
+        parameters = {}
+        if token:
+            parameters['auth'] = token
+        for param in list(self.build_query):
+            if type(self.build_query[param]) is str:
+                parameters[param] = '"' + self.build_query[param] + '"'
+            elif type(self.build_query[param]) is bool:
+                parameters[param] = "true" if self.build_query[param] else "false"
+            else:
+                parameters[param] = self.build_query[param]
+        # reset path and build_query for next query
+        request_ref = '{0}{1}.json?{2}'.format(self.database_url, self.path, urlencode(parameters))
+        self.path = ""
+        self.build_query = {}
+        return request_ref
 
 
 class UserStorage(Storage):

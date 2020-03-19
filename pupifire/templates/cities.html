@@ -1,0 +1,29 @@
+{% extends 'inicio.html' %}
+
+{% block content %}
+    <div class="container shadow-lg">
+        {% if states %}
+            <h3 style="color: blue">Provincias</h3>
+            <div class="container">
+                {% for state in states %}
+                    <a class="card m-2 p-0.5" href="{% url 'pupifire:schools_state' state.name|lower %}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ state.name }}</h5>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% elif cities %}
+            <h3 style="color: blue">Localidades de {{ state.name }}</h3>
+            <div class="container">
+                {% for city in cities %}
+                    <a class="card m-2 p-0.5" href="{% url 'pupifire:schools_city' state.name|lower city.name|lower%}">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ city.name }}</h5>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
